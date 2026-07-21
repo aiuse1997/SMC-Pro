@@ -1,1 +1,125 @@
+//@version=6
+indicator("SMC Pro", shorttitle="SMC Pro", overlay=true, max_boxes_count=500, max_labels_count=500, max_lines_count=500)
 
+//=====================================================================
+// INPUTS
+//=====================================================================
+
+groupStructure = "Market Structure"
+
+swingLength = input.int(8, "Swing Length", minval=2, maxval=30, group=groupStructure)
+
+showStructure = input.bool(true, "Show Market Structure", group=groupStructure)
+showHHHL = input.bool(true, "Show HH HL LH LL", group=groupStructure)
+showSwingPoints = input.bool(false, "Show Swing Points", group=groupStructure)
+
+groupBos = "Break Of Structure"
+
+showBOS = input.bool(true, "Show BOS", group=groupBos)
+bosByClose = input.bool(true, "Confirm BOS by Candle Close", group=groupBos)
+
+groupLiquidity = "Liquidity"
+
+showLiquidity = input.bool(true, "Show Liquidity Sweeps", group=groupLiquidity)
+
+groupOB = "Order Blocks"
+
+showOB = input.bool(true, "Show Order Blocks", group=groupOB)
+extendOB = input.int(100, "Extend Boxes", minval=20, maxval=500, group=groupOB)
+
+groupStyle = "Style"
+
+bullColor = input.color(color.lime, "Bullish Color", group=groupStyle)
+bearColor = input.color(color.red, "Bearish Color", group=groupStyle)
+neutralColor = input.color(color.orange, "Neutral", group=groupStyle)
+
+//=====================================================================
+// VARIABLES
+//=====================================================================
+
+var float lastSwingHigh = na
+var float previousSwingHigh = na
+
+var float lastSwingLow = na
+var float previousSwingLow = na
+
+var int trend = 0
+
+//=====================================================================
+// SWING ENGINE
+//=====================================================================
+
+pivotHigh = ta.pivothigh(high, swingLength, swingLength)
+pivotLow  = ta.pivotlow(low, swingLength, swingLength)
+
+isNewHigh = not na(pivotHigh)
+isNewLow = not na(pivotLow)
+
+//=====================================================================
+// PROCESS HIGHS
+//=====================================================================
+
+if isNewHigh
+
+    previousSwingHigh := lastSwingHigh
+    lastSwingHigh := pivotHigh
+
+    string txt = ""
+
+    if na(previousSwingHigh)
+        txt := "H"
+    else
+        txt := lastSwingHigh > previousSwingHigh ? "HH" : "LH"
+
+    if showHHHL
+
+        label.new(
+             bar_index-swingLength,
+             pivotHigh,
+             txt,
+             style=label.style_label_down,
+             textcolor=color.white,
+             color=txt=="HH"?bullColor:bearColor)
+
+//=====================================================================
+// PROCESS LOWS
+//=====================================================================
+
+if isNewLow
+
+    previousSwingLow := lastSwingLow
+    lastSwingLow := pivotLow
+
+    string txt=""
+
+    if na(previousSwingLow)
+        txt:="L"
+    else
+        txt:=lastSwingLow>previousSwingLow?"HL":"LL"
+
+    if showHHHL
+
+        label.new(
+             bar_index-swingLength,
+             pivotLow,
+             txt,
+             style=label.style_label_up,
+             textcolor=color.white,
+             color=txt=="HL"?bullColor:bearColor)
+
+//=====================================================================
+// TREND
+//=====================================================================
+
+if not na(previousSwingHigh) and not na(previousSwingLow)
+
+    if lastSwingHigh > previousSwingHigh and lastSwingLow > previousSwingLow
+        trend := 1
+
+    if lastSwingHigh < previousSwingHigh and lastSwingLow < previousSwingLow
+        trend := -1
+
+bgcolor(
+ trend==1 ? color.new(bullColor,95):
+ trend==-1 ? color.new(bearColor,95):
+ na)
