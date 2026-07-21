@@ -1,1 +1,241 @@
 
+//@version=6
+//=============================================================================
+// SMC PRO
+// Smart Money Concepts Framework
+// Version : 1.0.0
+// Author  : AI + User
+// License : Open Source
+//=============================================================================
+
+indicator(
+     title = "SMC Pro",
+     shorttitle = "SMC Pro",
+     overlay = true,
+     max_lines_count = 500,
+     max_boxes_count = 500,
+     max_labels_count = 500)
+
+//=============================================================================
+// INPUT GROUPS
+//=============================================================================
+
+string GROUP_STRUCTURE = "Market Structure"
+string GROUP_INTERNAL  = "Internal Structure"
+string GROUP_BOS       = "Break Of Structure"
+string GROUP_LIQUIDITY = "Liquidity"
+string GROUP_OB        = "Order Blocks"
+string GROUP_STYLE     = "Style"
+string GROUP_ALERTS    = "Alerts"
+string GROUP_ADVANCED  = "Advanced"
+
+//=============================================================================
+// MARKET STRUCTURE INPUTS
+//=============================================================================
+
+swingLength =
+    input.int(
+        10,
+        "Swing Length",
+        minval = 2,
+        maxval = 50,
+        group = GROUP_STRUCTURE)
+
+internalLength =
+    input.int(
+        3,
+        "Internal Swing Length",
+        minval = 2,
+        maxval = 10,
+        group = GROUP_INTERNAL)
+
+showSwingStructure =
+    input.bool(
+        true,
+        "Show Swing Structure",
+        group = GROUP_STRUCTURE)
+
+showInternalStructure =
+    input.bool(
+        true,
+        "Show Internal Structure",
+        group = GROUP_INTERNAL)
+
+showStructureLabels =
+    input.bool(
+        true,
+        "Show HH HL LH LL",
+        group = GROUP_STRUCTURE)
+
+showSwingPoints =
+    input.bool(
+        false,
+        "Show Swing Points",
+        group = GROUP_STRUCTURE)
+
+//=============================================================================
+// BOS SETTINGS
+//=============================================================================
+
+showBOS =
+    input.bool(
+        true,
+        "Show BOS",
+        group = GROUP_BOS)
+
+showCHoCH =
+    input.bool(
+        true,
+        "Show CHoCH",
+        group = GROUP_BOS)
+
+bosByClose =
+    input.bool(
+        true,
+        "Confirm Using Candle Close",
+        group = GROUP_BOS)
+
+//=============================================================================
+// LIQUIDITY
+//=============================================================================
+
+showLiquidity =
+    input.bool(
+        true,
+        "Show Liquidity",
+        group = GROUP_LIQUIDITY)
+
+equalTolerance =
+    input.float(
+        0.05,
+        "Equal High/Low Tolerance %",
+        step = 0.01,
+        group = GROUP_LIQUIDITY)
+
+//=============================================================================
+// ORDER BLOCKS
+//=============================================================================
+
+showOrderBlocks =
+    input.bool(
+        true,
+        "Show Order Blocks",
+        group = GROUP_OB)
+
+extendBoxes =
+    input.int(
+        100,
+        "Extend Boxes",
+        minval = 20,
+        maxval = 500,
+        group = GROUP_OB)
+
+maxOrderBlocks =
+    input.int(
+        20,
+        "Maximum Order Blocks",
+        minval = 1,
+        maxval = 100,
+        group = GROUP_OB)
+
+//=============================================================================
+// COLORS
+//=============================================================================
+
+bullColor =
+    input.color(
+        color.lime,
+        "Bullish",
+        group = GROUP_STYLE)
+
+bearColor =
+    input.color(
+        color.red,
+        "Bearish",
+        group = GROUP_STYLE)
+
+neutralColor =
+    input.color(
+        color.gray,
+        "Neutral",
+        group = GROUP_STYLE)
+
+internalColor =
+    input.color(
+        color.orange,
+        "Internal Structure",
+        group = GROUP_STYLE)
+
+//=============================================================================
+// CUSTOM TYPES
+//=============================================================================
+
+type SwingPoint
+    float price
+    int   bar
+    bool  isHigh
+    bool  internal
+    bool  confirmed
+
+type StructureEvent
+    float level
+    int   bar
+    bool  bullish
+    string event
+
+//=============================================================================
+// ARRAYS
+//=============================================================================
+
+var swingHighs = array.new<SwingPoint>()
+var swingLows  = array.new<SwingPoint>()
+
+var structureEvents = array.new<StructureEvent>()
+
+var bosLines = array.new_line()
+var bosLabels = array.new_label()
+
+var orderBlockBoxes = array.new_box()
+
+//=============================================================================
+// GLOBAL VARIABLES
+//=============================================================================
+
+var int trend = 0
+
+var float lastSwingHigh = na
+var float lastSwingLow  = na
+
+var float previousSwingHigh = na
+var float previousSwingLow  = na
+
+//=============================================================================
+// HELPER FUNCTIONS
+//=============================================================================
+
+// Returns true if candle is bullish
+isBullish() =>
+    close > open
+
+// Returns true if candle is bearish
+isBearish() =>
+    close < open
+
+// Remove oldest line if limit exceeded
+cleanupLines(int maxCount) =>
+    while array.size(bosLines) > maxCount
+        line.delete(array.shift(bosLines))
+
+// Remove oldest label if limit exceeded
+cleanupLabels(int maxCount) =>
+    while array.size(bosLabels) > maxCount
+        label.delete(array.shift(bosLabels))
+
+// Remove oldest order block if limit exceeded
+cleanupBoxes(int maxCount) =>
+    while array.size(orderBlockBoxes) > maxCount
+        box.delete(array.shift(orderBlockBoxes))
+
+//=============================================================================
+// END OF PART 1A
+//=============================================================================
